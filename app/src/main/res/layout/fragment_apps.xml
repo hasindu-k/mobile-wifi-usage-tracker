@@ -93,6 +93,17 @@
             android:text="Mobile" />
     </com.google.android.material.button.MaterialButtonToggleGroup>
 
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btn_date"
+        style="@style/Widget.Material3.Button.OutlinedButton.Icon"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Today"
+        app:icon="@android:drawable/ic_menu_my_calendar"
+        app:layout_constraintBottom_toBottomOf="@id/toggle_group"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="@id/toggle_group" />
+
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/rv_apps"
         android:layout_width="match_parent"

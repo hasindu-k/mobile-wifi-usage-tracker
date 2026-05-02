@@ -17,6 +17,10 @@ import com.example.datausagemonitor.DataUsageRepository
 import com.example.datausagemonitor.R
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.button.MaterialButtonToggleGroup
+import com.google.android.material.datepicker.MaterialDatePicker
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Locale
 import kotlin.concurrent.thread
 
 class AppsFragment : Fragment() {
@@ -25,6 +29,17 @@ class AppsFragment : Fragment() {
     private lateinit var adapter: AppUsageAdapter
     private var allApps = listOf<AppUsageInfo>()
     private var isWifiView = true
+    private var selectedDateMillis: Long = getStartOfToday()
+    private val dateFormatter = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault())
+
+    private fun getStartOfToday(): Long {
+        val calendar = Calendar.getInstance()
+        calendar.set(Calendar.HOUR_OF_DAY, 0)
+        calendar.set(Calendar.MINUTE, 0)
+        calendar.set(Calendar.SECOND, 0)
+        calendar.set(Calendar.MILLISECOND, 0)
+        return calendar.timeInMillis
+    }
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -38,6 +53,7 @@ class AppsFragment : Fragment() {
         setupToggle(view)
         setupSearch(view)
         setupSorting(view)
+        setupDatePicker(view)
         
         loadData(view)
         
@@ -72,6 +88,38 @@ class AppsFragment : Fragment() {
         })
     }
 
+    private fun setupDatePicker(view: View) {
+        val btnDate = view.findViewById<MaterialButton>(R.id.btn_date)
+        btnDate.setOnClickListener {
+            val datePicker = MaterialDatePicker.Builder.datePicker()
+                .setTitleText("Select Date")
+                .setSelection(
+                    if (selectedDateMillis == getStartOfToday()) MaterialDatePicker.todayInUtcMilliseconds() 
+                    else selectedDateMillis
+                )
+                .build()
+
+            datePicker.addOnPositiveButtonClickListener { selection ->
+                val cal = Calendar.getInstance()
+                cal.timeInMillis = selection
+                cal.set(Calendar.HOUR_OF_DAY, 0)
+                cal.set(Calendar.MINUTE, 0)
+                cal.set(Calendar.SECOND, 0)
+                cal.set(Calendar.MILLISECOND, 0)
+                selectedDateMillis = cal.timeInMillis
+
+                if (selectedDateMillis == getStartOfToday()) {
+                    btnDate.text = "Today"
+                } else {
+                    btnDate.text = dateFormatter.format(selectedDateMillis)
+                }
+
+                loadData(view)
+            }
+            datePicker.show(parentFragmentManager, "DATE_PICKER")
+        }
+    }
+
     private fun loadData(root: View) {
         val loader = root.findViewById<View>(R.id.loader)
         val content = root.findViewById<View>(R.id.apps_content)
@@ -83,10 +131,13 @@ class AppsFragment : Fragment() {
 
         thread {
             try {
+                val endTime = selectedDateMillis + (24 * 60 * 60 * 1000L) - 1
+                val actualEndTime = if (endTime > System.currentTimeMillis()) System.currentTimeMillis() else endTime
+                
                 val data = if (isWifiView) {
-                    repository.getTodayWifiAppUsage()
+                    repository.getWifiAppUsage(selectedDateMillis, actualEndTime)
                 } else {
-                    repository.getTodayMobileAppUsage()
+                    repository.getMobileAppUsage(selectedDateMillis, actualEndTime)
                 }
                 
                 activity?.runOnUiThread {

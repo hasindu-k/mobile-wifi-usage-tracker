@@ -110,6 +110,22 @@ class DataUsageRepository(private val context: Context) {
         )
     }
 
+    fun getWifiAppUsage(startTime: Long, endTime: Long): List<AppUsageInfo> {
+        return getAppWiseUsage(
+            networkType = ConnectivityManager.TYPE_WIFI,
+            startTime = startTime,
+            endTime = endTime
+        )
+    }
+
+    fun getMobileAppUsage(startTime: Long, endTime: Long): List<AppUsageInfo> {
+        return getAppWiseUsage(
+            networkType = ConnectivityManager.TYPE_MOBILE,
+            startTime = startTime,
+            endTime = endTime
+        )
+    }
+
     fun getTodayHourlyWifiUsage(): List<HourlyUsageInfo> {
         return getHourlyUsage(
             networkType = ConnectivityManager.TYPE_WIFI,
