@@ -17,6 +17,8 @@ import com.example.datausagemonitor.DataUsageRepository
 import com.example.datausagemonitor.R
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.button.MaterialButtonToggleGroup
+import com.google.android.material.datepicker.CalendarConstraints
+import com.google.android.material.datepicker.DateValidatorPointBackward
 import com.google.android.material.datepicker.MaterialDatePicker
 import java.text.SimpleDateFormat
 import java.util.Calendar
@@ -91,12 +93,16 @@ class AppsFragment : Fragment() {
     private fun setupDatePicker(view: View) {
         val btnDate = view.findViewById<MaterialButton>(R.id.btn_date)
         btnDate.setOnClickListener {
+            val constraintsBuilder = CalendarConstraints.Builder()
+                .setValidator(DateValidatorPointBackward.now())
+
             val datePicker = MaterialDatePicker.Builder.datePicker()
                 .setTitleText("Select Date")
                 .setSelection(
                     if (selectedDateMillis == getStartOfToday()) MaterialDatePicker.todayInUtcMilliseconds() 
                     else selectedDateMillis
                 )
+                .setCalendarConstraints(constraintsBuilder.build())
                 .build()
 
             datePicker.addOnPositiveButtonClickListener { selection ->

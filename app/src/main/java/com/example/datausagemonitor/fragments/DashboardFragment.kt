@@ -14,6 +14,8 @@ import com.example.datausagemonitor.HourlyUsageInfo
 import com.example.datausagemonitor.R
 import com.example.datausagemonitor.UsagePermissionHelper
 import com.google.android.material.chip.ChipGroup
+import com.google.android.material.datepicker.CalendarConstraints
+import com.google.android.material.datepicker.DateValidatorPointBackward
 import com.google.android.material.datepicker.MaterialDatePicker
 import com.google.android.material.progressindicator.LinearProgressIndicator
 import java.text.SimpleDateFormat
@@ -271,9 +273,13 @@ class DashboardFragment : Fragment() {
 
     private fun setupDatePicker(view: View) {
         view.findViewById<ImageButton>(R.id.btn_custom_date).setOnClickListener {
+            val constraintsBuilder = CalendarConstraints.Builder()
+                .setValidator(DateValidatorPointBackward.now())
+
             val datePicker = MaterialDatePicker.Builder.datePicker()
                 .setTitleText("Select Date")
                 .setSelection(MaterialDatePicker.todayInUtcMilliseconds())
+                .setCalendarConstraints(constraintsBuilder.build())
                 .build()
 
             datePicker.addOnPositiveButtonClickListener { selection ->
