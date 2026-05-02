@@ -39,7 +39,7 @@ class AppsFragment : Fragment() {
         setupSearch(view)
         setupSorting(view)
         
-        loadData()
+        loadData(view)
         
         return view
     }
@@ -56,7 +56,7 @@ class AppsFragment : Fragment() {
         toggleGroup.addOnButtonCheckedListener { group, checkedId, isChecked ->
             if (isChecked) {
                 isWifiView = checkedId == R.id.btn_wifi
-                loadData()
+                loadData(view)
             }
         }
     }
@@ -72,9 +72,9 @@ class AppsFragment : Fragment() {
         })
     }
 
-    private fun loadData() {
-        val loader = view?.findViewById<View>(R.id.loader)
-        val content = view?.findViewById<View>(R.id.apps_content)
+    private fun loadData(root: View) {
+        val loader = root.findViewById<View>(R.id.loader)
+        val content = root.findViewById<View>(R.id.apps_content)
         
         activity?.runOnUiThread {
             loader?.visibility = View.VISIBLE
@@ -90,20 +90,26 @@ class AppsFragment : Fragment() {
                 }
                 
                 activity?.runOnUiThread {
-                    allApps = data
-                    adapter.updateData(allApps)
-                    loader?.visibility = View.GONE
-                    content?.visibility = View.VISIBLE
+                    if (isAdded) {
+                        allApps = data
+                        adapter.updateData(allApps)
+                        loader?.visibility = View.GONE
+                        content?.visibility = View.VISIBLE
+                    }
                 }
             } catch (e: Exception) {
                 activity?.runOnUiThread {
-                    loader?.visibility = View.GONE
-                    content?.visibility = View.VISIBLE
-                    Toast.makeText(context, "Error loading apps: ${e.message}", Toast.LENGTH_SHORT).show()
+                    if (isAdded) {
+                        loader?.visibility = View.GONE
+                        content?.visibility = View.VISIBLE
+                        Toast.makeText(context, "Error loading apps: ${e.message}", Toast.LENGTH_SHORT).show()
+                    }
                 }
             }
         }
     }
+
+
 
 
     private fun filterApps(query: String) {
