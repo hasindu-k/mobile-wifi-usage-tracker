@@ -73,6 +73,14 @@ class AppsFragment : Fragment() {
     }
 
     private fun loadData() {
+        val loader = view?.findViewById<View>(R.id.loader)
+        val content = view?.findViewById<View>(R.id.apps_content)
+        
+        activity?.runOnUiThread {
+            loader?.visibility = View.VISIBLE
+            content?.visibility = View.INVISIBLE
+        }
+
         thread {
             try {
                 val data = if (isWifiView) {
@@ -84,14 +92,19 @@ class AppsFragment : Fragment() {
                 activity?.runOnUiThread {
                     allApps = data
                     adapter.updateData(allApps)
+                    loader?.visibility = View.GONE
+                    content?.visibility = View.VISIBLE
                 }
             } catch (e: Exception) {
                 activity?.runOnUiThread {
+                    loader?.visibility = View.GONE
+                    content?.visibility = View.VISIBLE
                     Toast.makeText(context, "Error loading apps: ${e.message}", Toast.LENGTH_SHORT).show()
                 }
             }
         }
     }
+
 
     private fun filterApps(query: String) {
         val filtered = if (query.isEmpty()) {

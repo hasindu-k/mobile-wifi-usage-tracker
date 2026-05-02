@@ -39,6 +39,7 @@
                 android:textColor="@color/text_secondary" />
 
             <TextView
+                android:id="@+id/tv_wifi_limit_val"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="100 GB"
@@ -46,7 +47,9 @@
                 android:textSize="18sp"
                 android:textStyle="bold" />
 
+
             <com.google.android.material.progressindicator.LinearProgressIndicator
+                android:id="@+id/progress_wifi_limit"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="12dp"
@@ -54,7 +57,9 @@
                 app:indicatorColor="@color/wifi_blue"
                 app:trackColor="@color/divider" />
 
+
             <TextView
+                android:id="@+id/tv_wifi_used_val"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="4dp"
@@ -62,12 +67,15 @@
                 android:textColor="@color/text_secondary"
                 android:textSize="12sp" />
 
+
             <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_set_wifi_limit"
                 style="@style/Widget.Material3.Button.TextButton"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="end"
                 android:text="Set Limit" />
+
         </LinearLayout>
     </com.google.android.material.card.MaterialCardView>
 
@@ -92,6 +100,7 @@
                 android:textColor="@color/text_secondary" />
 
             <TextView
+                android:id="@+id/tv_mobile_limit_val"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="10 GB"
@@ -99,7 +108,9 @@
                 android:textSize="18sp"
                 android:textStyle="bold" />
 
+
             <com.google.android.material.progressindicator.LinearProgressIndicator
+                android:id="@+id/progress_mobile_limit"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="12dp"
@@ -107,7 +118,9 @@
                 app:indicatorColor="@color/mobile_green"
                 app:trackColor="@color/divider" />
 
+
             <TextView
+                android:id="@+id/tv_mobile_used_val"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="4dp"
@@ -115,23 +128,29 @@
                 android:textColor="@color/text_secondary"
                 android:textSize="12sp" />
 
+
             <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_set_mobile_limit"
                 style="@style/Widget.Material3.Button.TextButton"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="end"
                 android:text="Set Limit" />
+
         </LinearLayout>
     </com.google.android.material.card.MaterialCardView>
 
     <com.google.android.material.card.MaterialCardView
+        android:id="@+id/card_warning"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="24dp"
+        android:visibility="gone"
         app:cardBackgroundColor="#FFF3CD"
         app:cardCornerRadius="12dp"
         app:cardElevation="0dp"
         app:layout_constraintTop_toBottomOf="@id/card_mobile_limit">
+
 
         <LinearLayout
             android:layout_width="match_parent"

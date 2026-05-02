@@ -36,6 +36,20 @@ class DataUsageRepository(private val context: Context) {
         )
     }
 
+    fun getTodayHotspotUsage(): Long {
+        return getTetheringUsage(
+            startTime = getStartOfToday(),
+            endTime = System.currentTimeMillis()
+        )
+    }
+
+    fun getMonthlyHotspotUsage(): Long {
+        return getTetheringUsage(
+            startTime = getStartOfMonth(),
+            endTime = System.currentTimeMillis()
+        )
+    }
+
     fun getMonthlyMobileUsage(): Long {
         return getDeviceUsage(
             networkType = ConnectivityManager.TYPE_MOBILE,
@@ -43,6 +57,42 @@ class DataUsageRepository(private val context: Context) {
             endTime = System.currentTimeMillis()
         )
     }
+
+    fun getHotspotUsage(startTime: Long, endTime: Long): Long {
+        return getTetheringUsage(startTime, endTime)
+    }
+
+    
+    // ... (keep existing code)
+
+    private fun getTetheringUsage(startTime: Long, endTime: Long): Long {
+        var total = 0L
+        var networkStats: NetworkStats? = null
+        try {
+            networkStats = networkStatsManager.querySummary(
+                ConnectivityManager.TYPE_MOBILE,
+                null,
+                startTime,
+                endTime
+            )
+            val bucket = NetworkStats.Bucket()
+            while (networkStats.hasNextBucket()) {
+                networkStats.getNextBucket(bucket)
+                // Uid -5 is often used for tethering in some Android versions, 
+                // but checking for UID_TETHERING is more reliable if available.
+                // Alternatively, we check if the UID is NetworkStats.Bucket.UID_TETHERING
+                if (bucket.uid == NetworkStats.Bucket.UID_TETHERING) {
+                    total += bucket.rxBytes + bucket.txBytes
+                }
+            }
+        } catch (e: Exception) {
+            // Fallback for older versions or specific ROMs
+        } finally {
+            networkStats?.close()
+        }
+        return total
+    }
+
 
     fun getTodayWifiAppUsage(): List<AppUsageInfo> {
         return getAppWiseUsage(

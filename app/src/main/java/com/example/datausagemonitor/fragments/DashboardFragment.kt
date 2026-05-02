@@ -123,15 +123,23 @@ class DashboardFragment : Fragment() {
             return
         }
 
+        val loader = view.findViewById<View>(R.id.loader)
+        val content = view.findViewById<View>(R.id.dashboard_content)
+        
+        activity?.runOnUiThread {
+            loader.visibility = View.VISIBLE
+            content.visibility = View.INVISIBLE
+        }
+
         thread {
             try {
                 val wifi = repository.getWifiUsage(currentStartTime, currentEndTime)
                 val mobile = repository.getMobileUsage(currentStartTime, currentEndTime)
+                val hotspot = repository.getHotspotUsage(currentStartTime, currentEndTime)
                 
                 val hourlyWifi = repository.getWifiHourlyUsage(currentStartTime, currentEndTime)
                 val hourlyMobile = repository.getMobileHourlyUsage(currentStartTime, currentEndTime)
 
-                // Still need monthly references for the bottom cards
                 val monthlyWifi = repository.getMonthlyWifiUsage()
                 val monthlyMobile = repository.getMonthlyMobileUsage()
 
@@ -140,6 +148,10 @@ class DashboardFragment : Fragment() {
                     updateChart(view, hourlyWifi, hourlyMobile)
                     updatePeakUsage(view, hourlyWifi, hourlyMobile)
                     
+                    // Update Hotspot
+                    view.findViewById<TextView>(R.id.tv_hotspot_today).text = ByteFormatter.format(hotspot)
+                    view.findViewById<TextView>(R.id.label_hotspot_period).text = "Hotspot $currentPeriodLabel"
+
                     // Update labels
                     view.findViewById<TextView>(R.id.tv_today_total).text = 
                         "${ByteFormatter.format(wifi + mobile)} used ${currentPeriodLabel.lowercase()}"
@@ -147,15 +159,19 @@ class DashboardFragment : Fragment() {
                     view.findViewById<TextView>(R.id.label_wifi_period).text = "Wi-Fi $currentPeriodLabel"
                     view.findViewById<TextView>(R.id.label_mobile_period).text = "Mobile $currentPeriodLabel"
 
+                    loader.visibility = View.GONE
+                    content.visibility = View.VISIBLE
                 }
-
             } catch (e: Exception) {
                 activity?.runOnUiThread {
+                    loader.visibility = View.GONE
+                    content.visibility = View.VISIBLE
                     Toast.makeText(context, "Error loading data: ${e.message}", Toast.LENGTH_SHORT).show()
                 }
             }
         }
     }
+
 
     private fun updateSummaryCards(view: View, todayWifi: Long, todayMobile: Long, monthlyWifi: Long, monthlyMobile: Long) {
         view.findViewById<TextView>(R.id.tv_today_total).text = 
