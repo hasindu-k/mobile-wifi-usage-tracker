@@ -134,11 +134,13 @@
                 android:padding="16dp">
 
                 <TextView
+                    android:id="@+id/label_wifi_period"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Wi-Fi Today"
                     android:textColor="@color/text_secondary"
                     android:textSize="12sp" />
+
 
                 <TextView
                     android:id="@+id/tv_wifi_today"
@@ -170,11 +172,13 @@
                 android:padding="16dp">
 
                 <TextView
+                    android:id="@+id/label_mobile_period"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Mobile Today"
                     android:textColor="@color/text_secondary"
                     android:textSize="12sp" />
+
 
                 <TextView
                     android:id="@+id/tv_mobile_today"

@@ -76,8 +76,9 @@ class DashboardFragment : Fragment() {
         cal.set(Calendar.SECOND, 0)
         cal.set(Calendar.MILLISECOND, 0)
         currentStartTime = cal.timeInMillis
-        currentPeriodLabel = "today"
+        currentPeriodLabel = "Today"
     }
+
 
     private fun setRangeYesterday() {
         val cal = Calendar.getInstance()
@@ -89,8 +90,9 @@ class DashboardFragment : Fragment() {
         
         cal.add(Calendar.DAY_OF_YEAR, -1)
         currentStartTime = cal.timeInMillis
-        currentPeriodLabel = "yesterday"
+        currentPeriodLabel = "Yesterday"
     }
+
 
     private fun setRangeWeek() {
         val cal = Calendar.getInstance()
@@ -98,8 +100,9 @@ class DashboardFragment : Fragment() {
         
         cal.add(Calendar.DAY_OF_YEAR, -7)
         currentStartTime = cal.timeInMillis
-        currentPeriodLabel = "this week"
+        currentPeriodLabel = "This Week"
     }
+
 
     private fun setRangeMonth() {
         val cal = Calendar.getInstance()
@@ -111,8 +114,9 @@ class DashboardFragment : Fragment() {
         cal.set(Calendar.SECOND, 0)
         cal.set(Calendar.MILLISECOND, 0)
         currentStartTime = cal.timeInMillis
-        currentPeriodLabel = "this month"
+        currentPeriodLabel = "This Month"
     }
+
 
     private fun loadData(view: View) {
         if (!UsagePermissionHelper.hasUsageStatsPermission(requireContext())) {
@@ -138,8 +142,13 @@ class DashboardFragment : Fragment() {
                     
                     // Update labels
                     view.findViewById<TextView>(R.id.tv_today_total).text = 
-                        "${ByteFormatter.format(wifi + mobile)} used $currentPeriodLabel"
+                        "${ByteFormatter.format(wifi + mobile)} used ${currentPeriodLabel.lowercase()}"
+                    
+                    view.findViewById<TextView>(R.id.label_wifi_period).text = "Wi-Fi $currentPeriodLabel"
+                    view.findViewById<TextView>(R.id.label_mobile_period).text = "Mobile $currentPeriodLabel"
+
                 }
+
             } catch (e: Exception) {
                 activity?.runOnUiThread {
                     Toast.makeText(context, "Error loading data: ${e.message}", Toast.LENGTH_SHORT).show()
@@ -248,10 +257,38 @@ class DashboardFragment : Fragment() {
         view.findViewById<ImageButton>(R.id.btn_custom_date).setOnClickListener {
             val datePicker = MaterialDatePicker.Builder.datePicker()
                 .setTitleText("Select Date")
+                .setSelection(MaterialDatePicker.todayInUtcMilliseconds())
                 .build()
+
+            datePicker.addOnPositiveButtonClickListener { selection ->
+                val cal = Calendar.getInstance()
+                cal.timeInMillis = selection
+                
+                // Clear chip selection
+                view.findViewById<ChipGroup>(R.id.chip_group_history).clearCheck()
+
+                // Set range for the selected day
+                cal.set(Calendar.HOUR_OF_DAY, 0)
+                cal.set(Calendar.MINUTE, 0)
+                cal.set(Calendar.SECOND, 0)
+                cal.set(Calendar.MILLISECOND, 0)
+                currentStartTime = cal.timeInMillis
+                
+                cal.set(Calendar.HOUR_OF_DAY, 23)
+                cal.set(Calendar.MINUTE, 59)
+                cal.set(Calendar.SECOND, 59)
+                cal.set(Calendar.MILLISECOND, 999)
+                currentEndTime = cal.timeInMillis
+                
+                val sdf = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault())
+                currentPeriodLabel = "on ${sdf.format(Date(currentStartTime))}"
+                
+                loadData(view)
+            }
             datePicker.show(parentFragmentManager, "DATE_PICKER")
         }
     }
 }
+
 
 
