@@ -22,6 +22,7 @@ import com.google.android.material.datepicker.DateValidatorPointBackward
 import com.google.android.material.datepicker.MaterialDatePicker
 import java.text.SimpleDateFormat
 import java.util.Calendar
+import java.util.Date
 import java.util.Locale
 import kotlin.concurrent.thread
 
@@ -31,7 +32,8 @@ class AppsFragment : Fragment() {
     private lateinit var adapter: AppUsageAdapter
     private var allApps = listOf<AppUsageInfo>()
     private var isWifiView = true
-    private var selectedDateMillis: Long = getStartOfToday()
+    private var selectedStartMillis: Long = getStartOfToday()
+    private var selectedEndMillis: Long = getEndOfToday()
     private val dateFormatter = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault())
 
     private fun getStartOfToday(): Long {
@@ -40,6 +42,15 @@ class AppsFragment : Fragment() {
         calendar.set(Calendar.MINUTE, 0)
         calendar.set(Calendar.SECOND, 0)
         calendar.set(Calendar.MILLISECOND, 0)
+        return calendar.timeInMillis
+    }
+
+    private fun getEndOfToday(): Long {
+        val calendar = Calendar.getInstance()
+        calendar.set(Calendar.HOUR_OF_DAY, 23)
+        calendar.set(Calendar.MINUTE, 59)
+        calendar.set(Calendar.SECOND, 59)
+        calendar.set(Calendar.MILLISECOND, 999)
         return calendar.timeInMillis
     }
 
@@ -96,28 +107,39 @@ class AppsFragment : Fragment() {
             val constraintsBuilder = CalendarConstraints.Builder()
                 .setValidator(DateValidatorPointBackward.now())
 
-            val datePicker = MaterialDatePicker.Builder.datePicker()
-                .setTitleText("Select Date")
+            val datePicker = MaterialDatePicker.Builder.dateRangePicker()
+                .setTitleText("Select Date Range")
                 .setSelection(
-                    if (selectedDateMillis == getStartOfToday()) MaterialDatePicker.todayInUtcMilliseconds() 
-                    else selectedDateMillis
+                    androidx.core.util.Pair(selectedStartMillis, selectedEndMillis)
                 )
                 .setCalendarConstraints(constraintsBuilder.build())
                 .build()
 
             datePicker.addOnPositiveButtonClickListener { selection ->
                 val cal = Calendar.getInstance()
-                cal.timeInMillis = selection
+                
+                cal.timeInMillis = selection.first
                 cal.set(Calendar.HOUR_OF_DAY, 0)
                 cal.set(Calendar.MINUTE, 0)
                 cal.set(Calendar.SECOND, 0)
                 cal.set(Calendar.MILLISECOND, 0)
-                selectedDateMillis = cal.timeInMillis
+                selectedStartMillis = cal.timeInMillis
 
-                if (selectedDateMillis == getStartOfToday()) {
-                    btnDate.text = "Today"
+                cal.timeInMillis = selection.second
+                cal.set(Calendar.HOUR_OF_DAY, 23)
+                cal.set(Calendar.MINUTE, 59)
+                cal.set(Calendar.SECOND, 59)
+                cal.set(Calendar.MILLISECOND, 999)
+                selectedEndMillis = cal.timeInMillis
+
+                val sdf = SimpleDateFormat("MMM dd", Locale.getDefault())
+                val startStr = sdf.format(Date(selectedStartMillis))
+                val endStr = sdf.format(Date(selectedEndMillis))
+
+                if (startStr == endStr) {
+                    btnDate.text = if (selectedStartMillis == getStartOfToday()) "Today" else startStr
                 } else {
-                    btnDate.text = dateFormatter.format(selectedDateMillis)
+                    btnDate.text = "$startStr - $endStr"
                 }
 
                 loadData(view)
@@ -137,13 +159,12 @@ class AppsFragment : Fragment() {
 
         thread {
             try {
-                val endTime = selectedDateMillis + (24 * 60 * 60 * 1000L) - 1
-                val actualEndTime = if (endTime > System.currentTimeMillis()) System.currentTimeMillis() else endTime
+                val actualEndTime = if (selectedEndMillis > System.currentTimeMillis()) System.currentTimeMillis() else selectedEndMillis
                 
                 val data = if (isWifiView) {
-                    repository.getWifiAppUsage(selectedDateMillis, actualEndTime)
+                    repository.getWifiAppUsage(selectedStartMillis, actualEndTime)
                 } else {
-                    repository.getMobileAppUsage(selectedDateMillis, actualEndTime)
+                    repository.getMobileAppUsage(selectedStartMillis, actualEndTime)
                 }
                 
                 activity?.runOnUiThread {

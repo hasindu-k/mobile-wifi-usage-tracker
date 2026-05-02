@@ -276,34 +276,41 @@ class DashboardFragment : Fragment() {
             val constraintsBuilder = CalendarConstraints.Builder()
                 .setValidator(DateValidatorPointBackward.now())
 
-            val datePicker = MaterialDatePicker.Builder.datePicker()
-                .setTitleText("Select Date")
-                .setSelection(MaterialDatePicker.todayInUtcMilliseconds())
+            val datePicker = MaterialDatePicker.Builder.dateRangePicker()
+                .setTitleText("Select Date Range")
+                .setSelection(androidx.core.util.Pair(currentStartTime, currentEndTime))
                 .setCalendarConstraints(constraintsBuilder.build())
                 .build()
 
             datePicker.addOnPositiveButtonClickListener { selection ->
                 val cal = Calendar.getInstance()
-                cal.timeInMillis = selection
                 
                 // Clear chip selection
                 view.findViewById<ChipGroup>(R.id.chip_group_history).clearCheck()
 
-                // Set range for the selected day
+                cal.timeInMillis = selection.first
                 cal.set(Calendar.HOUR_OF_DAY, 0)
                 cal.set(Calendar.MINUTE, 0)
                 cal.set(Calendar.SECOND, 0)
                 cal.set(Calendar.MILLISECOND, 0)
                 currentStartTime = cal.timeInMillis
                 
+                cal.timeInMillis = selection.second
                 cal.set(Calendar.HOUR_OF_DAY, 23)
                 cal.set(Calendar.MINUTE, 59)
                 cal.set(Calendar.SECOND, 59)
                 cal.set(Calendar.MILLISECOND, 999)
                 currentEndTime = cal.timeInMillis
                 
-                val sdf = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault())
-                currentPeriodLabel = "on ${sdf.format(Date(currentStartTime))}"
+                val sdf = SimpleDateFormat("MMM dd", Locale.getDefault())
+                val startStr = sdf.format(Date(currentStartTime))
+                val endStr = sdf.format(Date(currentEndTime))
+                
+                currentPeriodLabel = if (startStr == endStr) {
+                    "on $startStr"
+                } else {
+                    "$startStr - $endStr"
+                }
                 
                 loadData(view)
             }
