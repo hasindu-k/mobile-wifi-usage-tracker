@@ -60,6 +60,22 @@ class DataUsageRepository(private val context: Context) {
         )
     }
 
+    fun getTodayHourlyWifiUsage(): List<HourlyUsageInfo> {
+        return getHourlyUsage(
+            networkType = ConnectivityManager.TYPE_WIFI,
+            startTime = getStartOfToday(),
+            endTime = System.currentTimeMillis()
+        )
+    }
+
+    fun getTodayHourlyMobileUsage(): List<HourlyUsageInfo> {
+        return getHourlyUsage(
+            networkType = ConnectivityManager.TYPE_MOBILE,
+            startTime = getStartOfToday(),
+            endTime = System.currentTimeMillis()
+        )
+    }
+
     private fun getDeviceUsage(
         networkType: Int,
         startTime: Long,
@@ -149,6 +165,76 @@ class DataUsageRepository(private val context: Context) {
             .sortedByDescending { it.totalBytes }
     }
 
+    private fun getHourlyUsage(
+        networkType: Int,
+        startTime: Long,
+        endTime: Long
+    ): List<HourlyUsageInfo> {
+        val hourlyMap = linkedMapOf<Long, Pair<Long, Long>>()
+
+        val calendar = Calendar.getInstance()
+        calendar.timeInMillis = startTime
+
+        while (calendar.timeInMillis < endTime) {
+            hourlyMap[calendar.timeInMillis] = Pair(0L, 0L)
+            calendar.add(Calendar.HOUR_OF_DAY, 1)
+        }
+
+        var networkStats: NetworkStats? = null
+
+        try {
+            networkStats = networkStatsManager.queryDetails(
+                networkType,
+                null,
+                startTime,
+                endTime
+            )
+
+            val bucket = NetworkStats.Bucket()
+
+            while (networkStats.hasNextBucket()) {
+                networkStats.getNextBucket(bucket)
+
+                val bucketStartHour = getStartOfHour(bucket.startTimeStamp)
+                val currentValue = hourlyMap[bucketStartHour] ?: Pair(0L, 0L)
+
+                val updatedRx = currentValue.first + bucket.rxBytes
+                val updatedTx = currentValue.second + bucket.txBytes
+
+                hourlyMap[bucketStartHour] = Pair(updatedRx, updatedTx)
+            }
+
+        } catch (e: Exception) {
+            return emptyList()
+
+        } finally {
+            networkStats?.close()
+        }
+
+        return hourlyMap.map { entry ->
+            val rxBytes = entry.value.first
+            val txBytes = entry.value.second
+
+            HourlyUsageInfo(
+                startTime = entry.key,
+                endTime = entry.key + ONE_HOUR_IN_MILLIS,
+                receivedBytes = rxBytes,
+                transmittedBytes = txBytes
+            )
+        }
+    }
+
+    private fun getStartOfHour(timeMillis: Long): Long {
+        val calendar = Calendar.getInstance()
+        calendar.timeInMillis = timeMillis
+
+        calendar.set(Calendar.MINUTE, 0)
+        calendar.set(Calendar.SECOND, 0)
+        calendar.set(Calendar.MILLISECOND, 0)
+
+        return calendar.timeInMillis
+    }
+
     private fun getAppName(packageName: String): String {
         return try {
             val applicationInfo: ApplicationInfo =
@@ -184,5 +270,9 @@ class DataUsageRepository(private val context: Context) {
         calendar.set(Calendar.MILLISECOND, 0)
 
         return calendar.timeInMillis
+    }
+
+    companion object {
+        private const val ONE_HOUR_IN_MILLIS = 60 * 60 * 1000L
     }
 }

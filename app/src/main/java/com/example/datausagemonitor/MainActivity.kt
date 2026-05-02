@@ -8,6 +8,9 @@ import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import kotlin.concurrent.thread
 
 class MainActivity : Activity() {
@@ -21,6 +24,9 @@ class MainActivity : Activity() {
     private lateinit var wifiAppsText: TextView
     private lateinit var mobileAppsText: TextView
     private lateinit var statusText: TextView
+
+    private lateinit var peakWifiText: TextView
+    private lateinit var peakMobileText: TextView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -73,6 +79,9 @@ class MainActivity : Activity() {
         todayMobileText = createResultText("Today's Mobile Data Usage: Not loaded")
         monthlyMobileText = createResultText("Monthly Mobile Data Usage: Not loaded")
 
+        peakWifiText = createResultText("Peak Wi-Fi Usage Time: Not loaded")
+        peakMobileText = createResultText("Peak Mobile Data Usage Time: Not loaded")
+
         wifiAppsText = createSectionText("Top Wi-Fi Apps Today:\nNot loaded")
         mobileAppsText = createSectionText("Top Mobile Data Apps Today:\nNot loaded")
 
@@ -85,6 +94,9 @@ class MainActivity : Activity() {
         container.addView(monthlyWifiText)
         container.addView(todayMobileText)
         container.addView(monthlyMobileText)
+
+        container.addView(peakWifiText)
+        container.addView(peakMobileText)
 
         container.addView(wifiAppsText)
         container.addView(mobileAppsText)
@@ -145,6 +157,12 @@ class MainActivity : Activity() {
                 val topWifiAppsText = formatAppUsageList(wifiAppUsage)
                 val topMobileAppsText = formatAppUsageList(mobileAppUsage)
 
+                val hourlyWifiUsage = repository.getTodayHourlyWifiUsage()
+                val hourlyMobileUsage = repository.getTodayHourlyMobileUsage()
+
+                val peakWifiUsage = hourlyWifiUsage.maxByOrNull { it.totalBytes }
+                val peakMobileUsage = hourlyMobileUsage.maxByOrNull { it.totalBytes }
+
                 runOnUiThread {
                     todayWifiText.text =
                         "Today's Wi-Fi Usage: ${ByteFormatter.format(todayWifiUsage)}"
@@ -163,6 +181,12 @@ class MainActivity : Activity() {
 
                     mobileAppsText.text =
                         "Top Mobile Data Apps Today:\n$topMobileAppsText"
+
+                    peakWifiText.text =
+                        "Peak Wi-Fi Usage Time Today: ${formatPeakUsage(peakWifiUsage)}"
+
+                    peakMobileText.text =
+                        "Peak Mobile Data Usage Time Today: ${formatPeakUsage(peakMobileUsage)}"
 
                     statusText.text = "Data usage loaded successfully"
                 }
@@ -193,5 +217,19 @@ class MainActivity : Activity() {
                 "${index + 1}. ${appUsageInfo.appName} - $totalUsage"
             }
             .joinToString("\n")
+    }
+
+    private fun formatPeakUsage(hourlyUsageInfo: HourlyUsageInfo?): String {
+        if (hourlyUsageInfo == null || hourlyUsageInfo.totalBytes <= 0) {
+            return "No usage data found"
+        }
+
+        val timeFormat = SimpleDateFormat("hh:mm a", Locale.getDefault())
+
+        val startTime = timeFormat.format(Date(hourlyUsageInfo.startTime))
+        val endTime = timeFormat.format(Date(hourlyUsageInfo.endTime))
+        val usage = ByteFormatter.format(hourlyUsageInfo.totalBytes)
+
+        return "$startTime - $endTime, Used: $usage"
     }
 }
