@@ -13,16 +13,22 @@ import com.example.datausagemonitor.DataUsageRepository
 import com.example.datausagemonitor.HourlyUsageInfo
 import com.example.datausagemonitor.R
 import com.example.datausagemonitor.UsagePermissionHelper
+import com.google.android.material.chip.ChipGroup
 import com.google.android.material.datepicker.MaterialDatePicker
 import com.google.android.material.progressindicator.LinearProgressIndicator
 import java.text.SimpleDateFormat
+import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 import kotlin.concurrent.thread
 
+
 class DashboardFragment : Fragment() {
 
     private lateinit var repository: DataUsageRepository
+    private var currentStartTime: Long = 0
+    private var currentEndTime: Long = 0
+    private var currentPeriodLabel: String = "today"
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -32,7 +38,11 @@ class DashboardFragment : Fragment() {
         val view = inflater.inflate(R.layout.fragment_dashboard, container, false)
         repository = DataUsageRepository(requireContext())
 
+        // Initialize with Today
+        setRangeToday()
+
         setupDatePicker(view)
+        setupFilterChips(view)
         loadData(view)
 
         return view
@@ -40,30 +50,95 @@ class DashboardFragment : Fragment() {
 
     override fun onResume() {
         super.onResume()
-        // Refresh data when returning to fragment
+        // Refresh with current range
         view?.let { loadData(it) }
+    }
+
+    private fun setupFilterChips(view: View) {
+        val chipGroup = view.findViewById<ChipGroup>(R.id.chip_group_history)
+        chipGroup.setOnCheckedStateChangeListener { group, checkedIds ->
+            when (checkedIds.firstOrNull()) {
+                R.id.chip_today -> setRangeToday()
+                R.id.chip_yesterday -> setRangeYesterday()
+                R.id.chip_week -> setRangeWeek()
+                R.id.chip_month -> setRangeMonth()
+            }
+            loadData(view)
+        }
+    }
+
+    private fun setRangeToday() {
+        val cal = Calendar.getInstance()
+        currentEndTime = cal.timeInMillis
+        
+        cal.set(Calendar.HOUR_OF_DAY, 0)
+        cal.set(Calendar.MINUTE, 0)
+        cal.set(Calendar.SECOND, 0)
+        cal.set(Calendar.MILLISECOND, 0)
+        currentStartTime = cal.timeInMillis
+        currentPeriodLabel = "today"
+    }
+
+    private fun setRangeYesterday() {
+        val cal = Calendar.getInstance()
+        cal.set(Calendar.HOUR_OF_DAY, 0)
+        cal.set(Calendar.MINUTE, 0)
+        cal.set(Calendar.SECOND, 0)
+        cal.set(Calendar.MILLISECOND, 0)
+        currentEndTime = cal.timeInMillis // Start of today is end of yesterday
+        
+        cal.add(Calendar.DAY_OF_YEAR, -1)
+        currentStartTime = cal.timeInMillis
+        currentPeriodLabel = "yesterday"
+    }
+
+    private fun setRangeWeek() {
+        val cal = Calendar.getInstance()
+        currentEndTime = cal.timeInMillis
+        
+        cal.add(Calendar.DAY_OF_YEAR, -7)
+        currentStartTime = cal.timeInMillis
+        currentPeriodLabel = "this week"
+    }
+
+    private fun setRangeMonth() {
+        val cal = Calendar.getInstance()
+        currentEndTime = cal.timeInMillis
+        
+        cal.set(Calendar.DAY_OF_MONTH, 1)
+        cal.set(Calendar.HOUR_OF_DAY, 0)
+        cal.set(Calendar.MINUTE, 0)
+        cal.set(Calendar.SECOND, 0)
+        cal.set(Calendar.MILLISECOND, 0)
+        currentStartTime = cal.timeInMillis
+        currentPeriodLabel = "this month"
     }
 
     private fun loadData(view: View) {
         if (!UsagePermissionHelper.hasUsageStatsPermission(requireContext())) {
-            // Optional: Show a message or button to request permission
             return
         }
 
         thread {
             try {
-                val todayWifi = repository.getTodayWifiUsage()
-                val todayMobile = repository.getTodayMobileUsage()
+                val wifi = repository.getWifiUsage(currentStartTime, currentEndTime)
+                val mobile = repository.getMobileUsage(currentStartTime, currentEndTime)
+                
+                val hourlyWifi = repository.getWifiHourlyUsage(currentStartTime, currentEndTime)
+                val hourlyMobile = repository.getMobileHourlyUsage(currentStartTime, currentEndTime)
+
+                // Still need monthly references for the bottom cards
                 val monthlyWifi = repository.getMonthlyWifiUsage()
                 val monthlyMobile = repository.getMonthlyMobileUsage()
-                
-                val hourlyWifi = repository.getTodayHourlyWifiUsage()
-                val hourlyMobile = repository.getTodayHourlyMobileUsage()
 
                 activity?.runOnUiThread {
-                    updateSummaryCards(view, todayWifi, todayMobile, monthlyWifi, monthlyMobile)
+                    updateSummaryCards(view, wifi, mobile, monthlyWifi, monthlyMobile)
                     updateChart(view, hourlyWifi, hourlyMobile)
                     updatePeakUsage(view, hourlyWifi, hourlyMobile)
+                    
+                    // Update labels
+                    view.findViewById<TextView>(R.id.tv_today_total).text = 
+                        "${ByteFormatter.format(wifi + mobile)} used $currentPeriodLabel"
                 }
             } catch (e: Exception) {
                 activity?.runOnUiThread {
