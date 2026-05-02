@@ -1,0 +1,182 @@
+package com.example.datausagemonitor.fragments
+
+import android.os.Bundle
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import android.widget.ImageButton
+import android.widget.TextView
+import android.widget.Toast
+import androidx.fragment.app.Fragment
+import com.example.datausagemonitor.ByteFormatter
+import com.example.datausagemonitor.DataUsageRepository
+import com.example.datausagemonitor.HourlyUsageInfo
+import com.example.datausagemonitor.R
+import com.example.datausagemonitor.UsagePermissionHelper
+import com.google.android.material.datepicker.MaterialDatePicker
+import com.google.android.material.progressindicator.LinearProgressIndicator
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+import kotlin.concurrent.thread
+
+class DashboardFragment : Fragment() {
+
+    private lateinit var repository: DataUsageRepository
+
+    override fun onCreateView(
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View? {
+        val view = inflater.inflate(R.layout.fragment_dashboard, container, false)
+        repository = DataUsageRepository(requireContext())
+
+        setupDatePicker(view)
+        loadData(view)
+
+        return view
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // Refresh data when returning to fragment
+        view?.let { loadData(it) }
+    }
+
+    private fun loadData(view: View) {
+        if (!UsagePermissionHelper.hasUsageStatsPermission(requireContext())) {
+            // Optional: Show a message or button to request permission
+            return
+        }
+
+        thread {
+            try {
+                val todayWifi = repository.getTodayWifiUsage()
+                val todayMobile = repository.getTodayMobileUsage()
+                val monthlyWifi = repository.getMonthlyWifiUsage()
+                val monthlyMobile = repository.getMonthlyMobileUsage()
+                
+                val hourlyWifi = repository.getTodayHourlyWifiUsage()
+                val hourlyMobile = repository.getTodayHourlyMobileUsage()
+
+                activity?.runOnUiThread {
+                    updateSummaryCards(view, todayWifi, todayMobile, monthlyWifi, monthlyMobile)
+                    updateChart(view, hourlyWifi, hourlyMobile)
+                    updatePeakUsage(view, hourlyWifi, hourlyMobile)
+                }
+            } catch (e: Exception) {
+                activity?.runOnUiThread {
+                    Toast.makeText(context, "Error loading data: ${e.message}", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+    }
+
+    private fun updateSummaryCards(view: View, todayWifi: Long, todayMobile: Long, monthlyWifi: Long, monthlyMobile: Long) {
+        view.findViewById<TextView>(R.id.tv_today_total).text = 
+            "${ByteFormatter.format(todayWifi + todayMobile)} used today"
+        
+        view.findViewById<TextView>(R.id.tv_wifi_today).text = ByteFormatter.format(todayWifi)
+        view.findViewById<TextView>(R.id.tv_mobile_today).text = ByteFormatter.format(todayMobile)
+        
+        view.findViewById<TextView>(R.id.tv_monthly_wifi).text = ByteFormatter.format(monthlyWifi)
+        view.findViewById<TextView>(R.id.tv_monthly_mobile).text = ByteFormatter.format(monthlyMobile)
+
+        // Update Comparison
+        val totalToday = todayWifi + todayMobile
+        if (totalToday > 0) {
+            val wifiPercent = (todayWifi * 100 / totalToday).toInt()
+            val mobilePercent = 100 - wifiPercent
+            
+            view.findViewById<LinearProgressIndicator>(R.id.progress_comparison).progress = wifiPercent
+            view.findViewById<TextView>(R.id.tv_wifi_percentage).text = "Wi-Fi: $wifiPercent%"
+            view.findViewById<TextView>(R.id.tv_mobile_percentage).text = "Mobile: $mobilePercent%"
+        }
+    }
+
+    private fun updateChart(view: View, hourlyWifi: List<HourlyUsageInfo>, hourlyMobile: List<HourlyUsageInfo>) {
+        val bars = listOf(
+            view.findViewById<View>(R.id.bar1),
+            view.findViewById<View>(R.id.bar2),
+            view.findViewById<View>(R.id.bar3),
+            view.findViewById<View>(R.id.bar4),
+            view.findViewById<View>(R.id.bar5),
+            view.findViewById<View>(R.id.bar6),
+            view.findViewById<View>(R.id.bar7),
+            view.findViewById<View>(R.id.bar8)
+        )
+
+        // Combine Wi-Fi + mobile usage by hour
+        val maxSize = maxOf(hourlyWifi.size, hourlyMobile.size)
+
+        val totalUsage = (0 until maxSize).map { index ->
+            val wifiBytes = hourlyWifi.getOrNull(index)?.totalBytes ?: 0L
+            val mobileBytes = hourlyMobile.getOrNull(index)?.totalBytes ?: 0L
+            wifiBytes + mobileBytes
+        }
+
+        val blockSize = 3
+        val blockUsages = mutableListOf<Long>()
+
+        for (i in 0 until 8) {
+            val start = i * blockSize
+            val end = ((i + 1) * blockSize).coerceAtMost(totalUsage.size)
+
+            val blockSum = if (start < totalUsage.size) {
+                totalUsage.subList(start, end).sum()
+            } else {
+                0L
+            }
+
+            blockUsages.add(blockSum)
+        }
+
+        val maxUsage = blockUsages.maxOrNull()?.coerceAtLeast(1L) ?: 1L
+
+        bars.forEachIndexed { index, bar ->
+            val usage = blockUsages.getOrNull(index) ?: 0L
+            val heightPercent = usage.toFloat() / maxUsage.toFloat()
+
+            val layoutParams = bar.layoutParams
+            layoutParams.height = (heightPercent * 400).toInt().coerceAtLeast(10)
+            bar.layoutParams = layoutParams
+
+            bar.setOnClickListener {
+                Toast.makeText(
+                    context,
+                    "Usage: ${ByteFormatter.format(usage)}",
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+        }
+    }
+
+    private fun updatePeakUsage(view: View, hourlyWifi: List<HourlyUsageInfo>, hourlyMobile: List<HourlyUsageInfo>) {
+        val peakWifi = hourlyWifi.maxByOrNull { it.totalBytes }
+        val peakMobile = hourlyMobile.maxByOrNull { it.totalBytes }
+
+        view.findViewById<TextView>(R.id.tv_peak_wifi_time).text = formatTimeRange(peakWifi)
+        view.findViewById<TextView>(R.id.tv_peak_wifi_usage).text = "${ByteFormatter.format(peakWifi?.totalBytes ?: 0L)} used"
+
+        view.findViewById<TextView>(R.id.tv_peak_mobile_time).text = formatTimeRange(peakMobile)
+        view.findViewById<TextView>(R.id.tv_peak_mobile_usage).text = "${ByteFormatter.format(peakMobile?.totalBytes ?: 0L)} used"
+    }
+
+    private fun formatTimeRange(info: HourlyUsageInfo?): String {
+        if (info == null || info.totalBytes == 0L) return "No usage recorded"
+        val sdf = SimpleDateFormat("hh:mm a", Locale.getDefault())
+        return "${sdf.format(Date(info.startTime))} - ${sdf.format(Date(info.endTime))}"
+    }
+
+    private fun setupDatePicker(view: View) {
+        view.findViewById<ImageButton>(R.id.btn_custom_date).setOnClickListener {
+            val datePicker = MaterialDatePicker.Builder.datePicker()
+                .setTitleText("Select Date")
+                .build()
+            datePicker.show(parentFragmentManager, "DATE_PICKER")
+        }
+    }
+}
+
+
