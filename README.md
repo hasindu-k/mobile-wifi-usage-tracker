@@ -17,7 +17,10 @@ The app shows daily and monthly network usage, app-wise data usage, and the time
 - Display top data-consuming applications
 - Show peak Wi-Fi usage time for today
 - Show peak mobile data usage time for today
-- Simple native Android UI
+- Real-time hotspot usage tracking
+- Persistent custom usage limit alerts
+- Smooth loading states and professional UI
+- Background data processes handling
 
 ---
 
@@ -236,9 +239,6 @@ For best results:
 - Add charts for hourly usage
 - Add daily usage history
 - Add weekly and monthly graphs
-- Add custom usage limit alerts
-- Add background usage tracking
-- Add notifications when usage exceeds a limit
 - Add Wi-Fi vs mobile comparison chart
 - Add dark mode
 - Improve UI using Jetpack Compose
