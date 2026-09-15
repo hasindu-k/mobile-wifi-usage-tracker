@@ -4,6 +4,7 @@
     <color name="white">#FFFFFFFF</color>
     
     <color name="primary">#0D6EFD</color>
+    <color name="primary_container">#DCEBFF</color>
     <color name="primary_variant">#004AB5</color>
     <color name="secondary">#198754</color>
     

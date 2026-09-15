@@ -27,6 +27,8 @@ import kotlin.concurrent.thread
 
 class DashboardFragment : Fragment() {
 
+    private data class UsageBlock(val bytes: Long, val label: String)
+
     private lateinit var repository: DataUsageRepository
     private var currentStartTime: Long = 0
     private var currentEndTime: Long = 0
@@ -155,11 +157,13 @@ class DashboardFragment : Fragment() {
                     view.findViewById<TextView>(R.id.label_hotspot_period).text = "Hotspot $currentPeriodLabel"
 
                     // Update labels
-                    view.findViewById<TextView>(R.id.tv_today_total).text = 
-                        "${ByteFormatter.format(wifi + mobile)} used ${currentPeriodLabel.lowercase()}"
+                    view.findViewById<TextView>(R.id.tv_today_total).text =
+                        ByteFormatter.format(wifi + mobile)
+                    view.findViewById<TextView>(R.id.tv_total_period).text = currentPeriodLabel
                     
                     view.findViewById<TextView>(R.id.label_wifi_period).text = "Wi-Fi $currentPeriodLabel"
                     view.findViewById<TextView>(R.id.label_mobile_period).text = "Mobile $currentPeriodLabel"
+                    updateSectionLabels(view)
 
                     loader.visibility = View.GONE
                     content.visibility = View.VISIBLE
@@ -176,8 +180,9 @@ class DashboardFragment : Fragment() {
 
 
     private fun updateSummaryCards(view: View, todayWifi: Long, todayMobile: Long, monthlyWifi: Long, monthlyMobile: Long) {
-        view.findViewById<TextView>(R.id.tv_today_total).text = 
-            "${ByteFormatter.format(todayWifi + todayMobile)} used today"
+        view.findViewById<TextView>(R.id.tv_today_total).text =
+            ByteFormatter.format(todayWifi + todayMobile)
+        view.findViewById<TextView>(R.id.tv_total_period).text = currentPeriodLabel
         
         view.findViewById<TextView>(R.id.tv_wifi_today).text = ByteFormatter.format(todayWifi)
         view.findViewById<TextView>(R.id.tv_mobile_today).text = ByteFormatter.format(todayMobile)
@@ -209,35 +214,62 @@ class DashboardFragment : Fragment() {
             view.findViewById<View>(R.id.bar8)
         )
 
-        // Combine Wi-Fi + mobile usage by hour
+        // Combine Wi-Fi + mobile usage by hour, or by day for longer periods.
         val maxSize = maxOf(hourlyWifi.size, hourlyMobile.size)
 
-        val totalUsage = (0 until maxSize).map { index ->
+        val hourlyUsage = (0 until maxSize).map { index ->
             val wifiBytes = hourlyWifi.getOrNull(index)?.totalBytes ?: 0L
             val mobileBytes = hourlyMobile.getOrNull(index)?.totalBytes ?: 0L
             wifiBytes + mobileBytes
         }
 
-        val blockSize = 3
-        val blockUsages = mutableListOf<Long>()
+        val usagePoints = if (isLongPeriod()) {
+            val dailyUsage = linkedMapOf<Long, Long>()
+            (0 until maxSize).forEach { index ->
+                val info = hourlyWifi.getOrNull(index) ?: hourlyMobile.getOrNull(index)
+                if (info != null) {
+                    val dayStart = Calendar.getInstance().apply {
+                        timeInMillis = info.startTime
+                        set(Calendar.HOUR_OF_DAY, 0)
+                        set(Calendar.MINUTE, 0)
+                        set(Calendar.SECOND, 0)
+                        set(Calendar.MILLISECOND, 0)
+                    }.timeInMillis
+                    dailyUsage[dayStart] = (dailyUsage[dayStart] ?: 0L) + hourlyUsage[index]
+                }
+            }
+            dailyUsage.toSortedMap().map { (dayStart, bytes) ->
+                Triple(dayStart, dayStart + 24 * 60 * 60 * 1000L, bytes)
+            }
+        } else {
+            (0 until maxSize).mapNotNull { index ->
+                val info = hourlyWifi.getOrNull(index) ?: hourlyMobile.getOrNull(index)
+                info?.let { Triple(it.startTime, it.endTime, hourlyUsage[index]) }
+            }
+        }
+
+        val blockSize = kotlin.math.ceil(usagePoints.size / 8.0).toInt().coerceAtLeast(1)
+        val usageBlocks = mutableListOf<UsageBlock>()
 
         for (i in 0 until 8) {
             val start = i * blockSize
-            val end = ((i + 1) * blockSize).coerceAtMost(totalUsage.size)
+            val end = ((i + 1) * blockSize).coerceAtMost(usagePoints.size)
 
-            val blockSum = if (start < totalUsage.size) {
-                totalUsage.subList(start, end).sum()
+            if (start < usagePoints.size) {
+                val points = usagePoints.subList(start, end)
+                val blockSum = points.sumOf { it.third }
+                val label = formatChartRange(points.first().first, points.last().second)
+                usageBlocks.add(UsageBlock(blockSum, label))
             } else {
-                0L
+                usageBlocks.add(UsageBlock(0L, "No usage recorded"))
             }
-
-            blockUsages.add(blockSum)
         }
 
-        val maxUsage = blockUsages.maxOrNull()?.coerceAtLeast(1L) ?: 1L
+        val maxUsage = usageBlocks.maxOfOrNull { it.bytes }?.coerceAtLeast(1L) ?: 1L
 
         bars.forEachIndexed { index, bar ->
-            val usage = blockUsages.getOrNull(index) ?: 0L
+            val block = usageBlocks.getOrNull(index) ?: UsageBlock(0L, "No usage recorded")
+            val usage = block.bytes
             val heightPercent = usage.toFloat() / maxUsage.toFloat()
 
             val layoutParams = bar.layoutParams
@@ -247,11 +279,39 @@ class DashboardFragment : Fragment() {
             bar.setOnClickListener {
                 Toast.makeText(
                     context,
-                    "Usage: ${ByteFormatter.format(usage)}",
+                    "${block.label}: ${ByteFormatter.format(usage)}",
                     Toast.LENGTH_SHORT
                 ).show()
             }
         }
+    }
+
+    private fun isLongPeriod(): Boolean {
+        return currentEndTime - currentStartTime > 24 * 60 * 60 * 1000L
+    }
+
+    private fun formatChartRange(startTime: Long, endTime: Long): String {
+        val pattern = if (isLongPeriod()) "MMM dd" else "hh:mm a"
+        val formatter = SimpleDateFormat(pattern, Locale.getDefault())
+        return "${formatter.format(Date(startTime))} - ${formatter.format(Date(endTime))}"
+    }
+
+    private fun updateSectionLabels(view: View) {
+        val chartLabel = if (isLongPeriod()) {
+            "Daily Usage $currentPeriodLabel"
+        } else {
+            "Hourly Usage $currentPeriodLabel"
+        }
+        val peakLabel = if (isLongPeriod()) {
+            "Peak Usage Period $currentPeriodLabel"
+        } else {
+            "Peak Usage Time $currentPeriodLabel"
+        }
+
+        view.findViewById<TextView>(R.id.label_hourly_usage).text = chartLabel
+        view.findViewById<TextView>(R.id.label_comparison).text =
+            "Wi-Fi vs Mobile $currentPeriodLabel"
+        view.findViewById<TextView>(R.id.label_peak_usage).text = peakLabel
     }
 
     private fun updatePeakUsage(view: View, hourlyWifi: List<HourlyUsageInfo>, hourlyMobile: List<HourlyUsageInfo>) {
@@ -318,6 +378,3 @@ class DashboardFragment : Fragment() {
         }
     }
 }
-
-
-

@@ -15,4 +15,8 @@
         <item name="cardCornerRadius">16dp</item>
         <item name="cardElevation">2dp</item>
     </style>
+
+    <style name="BottomNavigationActiveIndicator" parent="Widget.Material3.BottomNavigationView.ActiveIndicator">
+        <item name="android:color">@color/primary_container</item>
+    </style>
 </resources>

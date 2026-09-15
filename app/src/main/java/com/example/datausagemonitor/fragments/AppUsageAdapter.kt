@@ -11,7 +11,10 @@ import com.example.datausagemonitor.ByteFormatter
 import com.example.datausagemonitor.R
 import com.google.android.material.progressindicator.LinearProgressIndicator
 
-class AppUsageAdapter(private var apps: List<AppUsageInfo>) :
+class AppUsageAdapter(
+    private var apps: List<AppUsageInfo>,
+    private var networkLabel: String = "Wi-Fi"
+) :
     RecyclerView.Adapter<AppUsageAdapter.AppViewHolder>() {
 
     class AppViewHolder(view: View) : RecyclerView.ViewHolder(view) {
@@ -19,6 +22,7 @@ class AppUsageAdapter(private var apps: List<AppUsageInfo>) :
         val usageAmount: TextView = view.findViewById(R.id.tv_usage_amount)
         val progress: LinearProgressIndicator = view.findViewById(R.id.progress_usage)
         val icon: ImageView = view.findViewById(R.id.iv_app_icon)
+        val networkBadge: TextView = view.findViewById(R.id.badge_network)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): AppViewHolder {
@@ -31,6 +35,7 @@ class AppUsageAdapter(private var apps: List<AppUsageInfo>) :
         val app = apps[position]
         holder.appName.text = app.appName
         holder.usageAmount.text = ByteFormatter.format(app.totalBytes)
+        holder.networkBadge.text = networkLabel
         
         // Mock progress for demo
         val maxUsage = apps.firstOrNull()?.totalBytes ?: 1L
@@ -39,8 +44,9 @@ class AppUsageAdapter(private var apps: List<AppUsageInfo>) :
 
     override fun getItemCount() = apps.size
 
-    fun updateData(newApps: List<AppUsageInfo>) {
+    fun updateData(newApps: List<AppUsageInfo>, selectedNetwork: String = networkLabel) {
         apps = newApps
+        networkLabel = selectedNetwork
         notifyDataSetChanged()
     }
 }

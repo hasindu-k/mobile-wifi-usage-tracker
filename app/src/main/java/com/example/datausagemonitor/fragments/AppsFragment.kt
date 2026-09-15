@@ -8,6 +8,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.EditText
 import android.widget.PopupMenu
+import android.widget.TextView
 import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -95,7 +96,7 @@ class AppsFragment : Fragment() {
         etSearch.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
-                filterApps(s.toString())
+                filterApps(view, s.toString())
             }
             override fun afterTextChanged(s: Editable?) {}
         })
@@ -170,7 +171,8 @@ class AppsFragment : Fragment() {
                 activity?.runOnUiThread {
                     if (isAdded) {
                         allApps = data
-                        adapter.updateData(allApps)
+                        adapter.updateData(allApps, if (isWifiView) "Wi-Fi" else "Mobile")
+                        updateEmptyState(root, allApps)
                         loader?.visibility = View.GONE
                         content?.visibility = View.VISIBLE
                     }
@@ -190,13 +192,32 @@ class AppsFragment : Fragment() {
 
 
 
-    private fun filterApps(query: String) {
+    private fun filterApps(view: View, query: String) {
         val filtered = if (query.isEmpty()) {
             allApps
         } else {
             allApps.filter { it.appName.contains(query, ignoreCase = true) }
         }
         adapter.updateData(filtered)
+        updateEmptyState(view, filtered, query.isNotEmpty())
+    }
+
+    private fun updateEmptyState(view: View, apps: List<AppUsageInfo>, isSearch: Boolean = false) {
+        val recyclerView = view.findViewById<RecyclerView>(R.id.rv_apps)
+        val emptyState = view.findViewById<TextView>(R.id.tv_empty_apps)
+
+        if (apps.isEmpty()) {
+            recyclerView.visibility = View.GONE
+            emptyState.text = if (isSearch) {
+                "No apps match your search"
+            } else {
+                "No data found for this filter"
+            }
+            emptyState.visibility = View.VISIBLE
+        } else {
+            recyclerView.visibility = View.VISIBLE
+            emptyState.visibility = View.GONE
+        }
     }
 
     private fun setupSorting(view: View) {
@@ -222,6 +243,3 @@ class AppsFragment : Fragment() {
         }
     }
 }
-
-
-

@@ -5,7 +5,11 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/background"
-    android:padding="16dp">
+    android:clipToPadding="false"
+    android:paddingStart="20dp"
+    android:paddingTop="20dp"
+    android:paddingEnd="20dp"
+    android:paddingBottom="12dp">
 
     <com.google.android.material.progressindicator.CircularProgressIndicator
         android:id="@+id/loader"
@@ -30,29 +34,47 @@
             android:layout_height="wrap_content"
             android:text="Top Data Consuming Apps"
             android:textColor="@color/text_main"
-            android:textSize="20sp"
+            android:includeFontPadding="false"
+            android:textSize="24sp"
             android:textStyle="bold"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
 
 
-    <com.google.android.material.textfield.TextInputLayout
+        <TextView
+            android:id="@+id/subtitle_apps"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:text="See which apps are using your data"
+            android:textColor="@color/text_secondary"
+            android:textSize="14sp"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/title_apps" />
+
+        <com.google.android.material.textfield.TextInputLayout
         android:id="@+id/search_layout"
         style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
+        android:layout_marginTop="20dp"
         android:hint="Search apps..."
+        app:boxStrokeColor="@color/primary"
+        app:hintTextColor="@color/text_secondary"
         app:layout_constraintEnd_toStartOf="@+id/btn_sort"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/title_apps"
-        app:startIconDrawable="@android:drawable/ic_menu_search">
+        app:layout_constraintTop_toBottomOf="@id/subtitle_apps"
+        app:startIconDrawable="@android:drawable/ic_menu_search"
+        app:startIconTint="@color/text_secondary">
 
         <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/et_search"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:inputType="text" />
+            android:inputType="text"
+            android:textColor="@color/text_main"
+            android:textColorHint="@color/text_secondary"
+            android:textSize="16sp" />
     </com.google.android.material.textfield.TextInputLayout>
 
     <com.google.android.material.button.MaterialButton
@@ -61,7 +83,13 @@
         android:layout_width="wrap_content"
         android:layout_height="0dp"
         android:layout_marginStart="8dp"
+        android:minWidth="52dp"
+        android:textColor="@color/apps_control_colors"
+        app:backgroundTint="@color/surface"
         app:icon="@android:drawable/ic_menu_sort_by_size"
+        app:iconTint="@color/primary"
+        app:strokeColor="@color/divider"
+        app:strokeWidth="1dp"
         app:layout_constraintBottom_toBottomOf="@id/search_layout"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toEndOf="@id/search_layout"
@@ -69,10 +97,12 @@
 
     <com.google.android.material.button.MaterialButtonToggleGroup
         android:id="@+id/toggle_group"
-        android:layout_width="wrap_content"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginTop="12dp"
+        android:layout_marginTop="16dp"
+        android:layout_marginEnd="8dp"
         app:checkedButton="@+id/btn_wifi"
+        app:layout_constraintEnd_toStartOf="@id/btn_date"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/search_layout"
         app:singleSelection="true">
@@ -83,14 +113,24 @@
             style="@style/Widget.Material3.Button.OutlinedButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Wi-Fi" />
+            android:minHeight="48dp"
+            android:text="Wi-Fi"
+            android:textColor="@color/apps_control_colors"
+            app:backgroundTint="@color/apps_filter_background"
+            app:strokeColor="@color/apps_control_stroke"
+            app:strokeWidth="1dp" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_mobile"
             style="@style/Widget.Material3.Button.OutlinedButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Mobile" />
+            android:minHeight="48dp"
+            android:text="Mobile"
+            android:textColor="@color/apps_control_colors"
+            app:backgroundTint="@color/apps_filter_background"
+            app:strokeColor="@color/apps_control_stroke"
+            app:strokeWidth="1dp" />
     </com.google.android.material.button.MaterialButtonToggleGroup>
 
     <com.google.android.material.button.MaterialButton
@@ -98,8 +138,12 @@
         style="@style/Widget.Material3.Button.OutlinedButton.Icon"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:minHeight="48dp"
         android:text="Today"
+        android:textColor="@color/primary"
+        app:backgroundTint="@color/surface"
         app:icon="@android:drawable/ic_menu_my_calendar"
+        app:iconTint="@color/primary"
         app:layout_constraintBottom_toBottomOf="@id/toggle_group"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="@id/toggle_group" />
@@ -108,12 +152,28 @@
         android:id="@+id/rv_apps"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_marginTop="16dp"
+        android:layout_marginTop="20dp"
+        android:clipToPadding="false"
+        android:paddingBottom="12dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintTop_toBottomOf="@id/toggle_group"
         tools:listitem="@layout/item_app_usage" />
 
+    <TextView
+        android:id="@+id/tv_empty_apps"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="24dp"
+        android:gravity="center"
+        android:text="No data found for this filter"
+        android:textColor="@color/text_secondary"
+        android:textSize="16sp"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="@id/rv_apps" />
+
     </androidx.constraintlayout.widget.ConstraintLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>
-
