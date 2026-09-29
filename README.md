@@ -24,6 +24,26 @@ The app shows daily and monthly network usage, app-wise data usage, and the time
 
 ---
 
+## Screenshots
+
+### Main Dashboard
+
+The main dashboard displays today's and monthly Wi-Fi and mobile data usage.
+
+<p align="center">
+  <img src="screenshots/Screenshot_20260929_162413_Data Usage Monitor.jpg" width="300" alt="Main Dashboard">
+</p>
+
+### Mobile and App-wise Data Usage
+
+Displays mobile data usage and application-wise data usage.
+
+<p align="center">
+  <img src="screenshots/Screenshot_20260929_162427_Data Usage Monitor.jpg" width="300" alt="Mobile and App-wise Data Usage">
+</p>
+
+---
+
 ## Tech Stack
 
 - Kotlin
