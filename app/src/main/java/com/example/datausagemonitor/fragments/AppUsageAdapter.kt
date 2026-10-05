@@ -36,6 +36,17 @@ class AppUsageAdapter(
         holder.appName.text = app.appName
         holder.usageAmount.text = ByteFormatter.format(app.totalBytes)
         holder.networkBadge.text = networkLabel
+
+        // Resolve the icon belonging to the package instead of leaving the
+        // placeholder from item_app_usage.xml in every row.
+        val packageManager = holder.itemView.context.packageManager
+        holder.icon.setImageDrawable(
+            try {
+                packageManager.getApplicationIcon(app.packageName)
+            } catch (_: android.content.pm.PackageManager.NameNotFoundException) {
+                packageManager.defaultActivityIcon
+            }
+        )
         
         // Mock progress for demo
         val maxUsage = apps.firstOrNull()?.totalBytes ?: 1L
