@@ -39,7 +39,7 @@ The main dashboard displays today's and monthly Wi-Fi and mobile data usage.
 Displays mobile data usage and application-wise data usage.
 
 <p align="center">
-  <img src="screenshots/Screenshot_20260929_162427_Data Usage Monitor.jpg" width="300" alt="Mobile and App-wise Data Usage">
+  <img src="screenshots/Screenshot_20261005_092036_Data Usage Monitor.jpg" width="300" alt="Mobile and App-wise Data Usage">
 </p>
 
 ---
